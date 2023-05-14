@@ -1,0 +1,9 @@
+import requests
+from bs4 import BeautifulSoup
+import init_django_module
+from vacancies import *
+from utils.month_in_english import *
+from vacancies.models import *
+
+response = requests.get("https://www.work.ua/jobs-python/")
+soup = BeautifulSoup(response.content, "html.parser")
