@@ -51,26 +51,26 @@ async def send_vacancies_to_bot():
         pass
 
 
-def get_last_vacancy_id(spider_channel_name: str | int) -> int | None:
+def get_last_vacancy_id(spider_name: str | int) -> int | None:
     try:
         return TelegramLastVacancyId.objects.get(
-            channel_name=spider_channel_name
+            spider_name=spider_name
         ).vacancy_id
     except TelegramLastVacancyId.DoesNotExist:
         return None
 
 
-def save_last_vacancy_id(vacancy_id: int, spider_channel_name: str) -> None:
+def save_last_vacancy_id(vacancy_id: int, spider_name: str) -> None:
     try:
         vacancy_meta = TelegramLastVacancyId.objects.get(
-            channel_name=spider_channel_name
+            spider_name=spider_name
         )
         vacancy_meta.vacancy_id = vacancy_id
         vacancy_meta.save()
 
     except TelegramLastVacancyId.DoesNotExist:
         TelegramLastVacancyId.objects.create(
-            channel_name=spider_channel_name,
+            spider_name=spider_name,
             vacancy_id=vacancy_id
         )
 
@@ -126,7 +126,7 @@ async def tg_start():
 
                 await sync_to_async(Telegram.objects.create)(
                     vacancy_id=msg.id,
-                    channel_name=channel_username,
+                    spider_name=channel_username,
                     publication_datetime=msg.date,
                     description=msg.message,
                 )
