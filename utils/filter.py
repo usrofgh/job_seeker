@@ -1,7 +1,7 @@
 EXCLUDE_WORDS = [
-    "lead", "senior", "administrator", "Системний адміністратор", "сисадмін",
-    "Викладач", "геоінформаційних", "Преподаватель", "DevOps",
-    "Middle Data", "Middle ML", "Middle Machine Learning", "електронщік"
+    "lead", "senior", "administrator", "системний адміністратор", "сисадмін",
+    "викладач", "геоінформаційних", "преподаватель", "devOps",
+    "middle data", "middle ml", "middle machine learning", "електронщік"
 ]
 INCLUDE_WORDS = [
     "python", "пайтон", "пітон", "питон", "data", "дата" "analyst",
