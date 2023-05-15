@@ -1,4 +1,9 @@
+import asyncio
+import time
+
 import requests as requests
+from aiogram.utils.exceptions import RetryAfter
+from asgiref.sync import sync_to_async
 
 import init_django_module  # noqa F403
 
@@ -8,13 +13,15 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlencode
 
 from spiders.SpiderBlueprint import SpiderBlueprint
-from vacancies.models import WorkUa
+from spiders.telegram import bot, CHAT_ID
+from vacancies.models import WorkUa, FirstVacancySession
 
 
 class WorkUaSpider(SpiderBlueprint):
     SPIDER_NAME = "work_ua"
     BASE_URL = "https://www.work.ua/jobs-python/"
     DATE_FORMAT = "%d %B %Y"
+    is_first_vacancy_in_session = True
 
     def get_vacancy_list(self, soup: BeautifulSoup):
         is_stop = False
@@ -85,6 +92,22 @@ class WorkUaSpider(SpiderBlueprint):
             }
             WorkUa.objects.create(**res)
 
+            if self.is_first_vacancy_in_session:
+                self.is_first_vacancy_in_session = False
+
+                vacancy = WorkUa.objects.last()
+                try:
+                    first_vacancy = (
+                        FirstVacancySession.objects.get(spider_name=self.SPIDER_NAME)
+                    )
+                    first_vacancy.vacancy = vacancy
+                    first_vacancy.save()
+                except FirstVacancySession.DoesNotExist:
+                    FirstVacancySession.objects.create(
+                        spider_name=self.SPIDER_NAME,
+                        vacancy=vacancy.id
+                    )
+
         if is_stop:
             return
 
@@ -105,6 +128,34 @@ class WorkUaSpider(SpiderBlueprint):
             response = requests.get(next_page)
             soup = BeautifulSoup(response.content, "html.parser")
             self.get_vacancy_list(soup)
+
+    async def send_vacancies_to_bot(self):
+        try:
+            from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
+            if from_vacancy:
+                vacancies: list[WorkUa] = (await sync_to_async(WorkUa.objects.filter)(
+                    id__gte=from_vacancy.id
+                )).order_by("publication_date")
+                n_vacancy = 0
+                async for vacancy in vacancies:
+                    n_vacancy += 1
+                    if n_vacancy == 29:
+                        n_vacancy = 0
+                        time.sleep(5)
+
+                    await bot.send_message(
+                        CHAT_ID,
+                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date}",
+                        disable_web_page_preview=True
+                    )
+
+                    vacancy.is_sent = True
+                    await sync_to_async(vacancy.save)()
+
+                await sync_to_async(from_vacancy.delete)()
+            await bot.send_message(CHAT_ID, text="—————————————————————", disable_notification=True)
+        except FirstVacancySession.DoesNotExist as ex:
+            print(ex)
 
     def start(self):
         print("WorkUa start")

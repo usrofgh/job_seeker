@@ -1,6 +1,9 @@
 import asyncio
 import datetime
+import time
 
+import aiogram
+from aiogram.utils.exceptions import RetryAfter
 from asgiref.sync import sync_to_async
 from telethon.tl import functions
 
@@ -68,10 +71,10 @@ class TelegramSpider:
 
             channels: list[InputPeerChannel] = folder.include_peers
             is_first_vacancy_in_session = True
-            for channel in channels[:5]:
+            for channel in channels:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
-                up_to = today - datetime.timedelta(days=4)
+                up_to = today - datetime.timedelta(days=10)
 
                 try:
                     if channel.username:
@@ -129,7 +132,7 @@ class TelegramSpider:
                         except FirstVacancySession.DoesNotExist:
                             await sync_to_async(FirstVacancySession.objects.create)(
                                 spider_name=self.SPIDER_NAME,
-                                vacancy=vacancy
+                                vacancy=vacancy.id
                             )
         print("TG stop\n")
 
@@ -140,8 +143,12 @@ class TelegramSpider:
                 vacancies: list[Telegram] = (await sync_to_async(Telegram.objects.filter)(
                     id__gte=from_vacancy.id
                 )).order_by("publication_datetime")
-
+                n_vacancy = 0
                 async for vacancy in vacancies:
+                    n_vacancy += 1
+                    if n_vacancy == 29:
+                        n_vacancy = 0
+                        time.sleep(5)
                     await bot.send_message(
                         CHAT_ID,
                         text=f"{vacancy.url_to_vacancy} {vacancy.publication_date} {vacancy.publication_time}",
