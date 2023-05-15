@@ -71,10 +71,10 @@ class TelegramSpider:
 
             channels: list[InputPeerChannel] = folder.include_peers
             is_first_vacancy_in_session = True
-            for channel in channels:
+            for channel in channels[:5]:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
-                up_to = today - datetime.timedelta(days=10)
+                up_to = today - datetime.timedelta(days=20)
 
                 try:
                     if channel.username:
@@ -127,7 +127,7 @@ class TelegramSpider:
                                 await sync_to_async(FirstVacancySession.objects.get)
                                 (spider_name=self.SPIDER_NAME)
                             )
-                            first_vacancy.vacancy_id = vacancy
+                            first_vacancy.vacancy_id = vacancy.id
                             sync_to_async(first_vacancy.save)()
                         except FirstVacancySession.DoesNotExist:
                             await sync_to_async(FirstVacancySession.objects.create)(

@@ -100,7 +100,7 @@ class WorkUaSpider(SpiderBlueprint):
                     first_vacancy = (
                         FirstVacancySession.objects.get(spider_name=self.SPIDER_NAME)
                     )
-                    first_vacancy.vacancy = vacancy
+                    first_vacancy.vacancy = vacancy.id
                     first_vacancy.save()
                 except FirstVacancySession.DoesNotExist:
                     FirstVacancySession.objects.create(
