@@ -51,7 +51,15 @@ class Dou(models.Model):
     salary_to = models.IntegerField(null=True)
     salary = models.IntegerField(null=True)
     description = models.TextField()
+    url_to_vacancy = models.CharField(max_length=500, unique=True)
 
+    publication_date = models.DateField()
+
+
+class Djinni(models.Model):
+    vacancy_id = models.IntegerField(unique=True)
+    title = models.CharField(max_length=300)
+    company_name = models.CharField(max_length=300)
     publication_date = models.DateField()
 
 
@@ -105,9 +113,4 @@ class TelegramLastVacancyId(models.Model):
 
 class FirstVacancySession(models.Model):
     spider_name = models.CharField(max_length=255, unique=True)
-    vacancy = models.ForeignKey(
-        to=Telegram,
-        on_delete=models.CASCADE,
-        related_name="first_vacancy_session",
-        null=True
-    )
+    vacancy = models.IntegerField()
