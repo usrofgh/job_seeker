@@ -127,7 +127,7 @@ class Migration(migrations.Migration):
                 ),
                 ("vacancy_id", models.IntegerField()),
                 ("spider_name", models.CharField(max_length=255)),
-                ("publication_datetime", models.DateTimeField()),
+                ("publication_date", models.DateTimeField()),
                 ("description", models.TextField()),
                 ("is_sent", models.BooleanField(default=False)),
                 ("is_viewed", models.BooleanField(default=False)),

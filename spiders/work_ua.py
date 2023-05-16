@@ -2,7 +2,6 @@ import asyncio
 import time
 
 import requests as requests
-from aiogram.utils.exceptions import RetryAfter
 from asgiref.sync import sync_to_async
 
 import init_django_module  # noqa F403
@@ -134,7 +133,7 @@ class WorkUaSpider(SpiderBlueprint):
             from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
             if from_vacancy:
                 vacancies: list[WorkUa] = (await sync_to_async(WorkUa.objects.filter)(
-                    id__gte=from_vacancy.id
+                    id__gte=from_vacancy.vacancy
                 )).order_by("publication_date")
                 n_vacancy = 0
                 async for vacancy in vacancies:

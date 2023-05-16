@@ -3,20 +3,22 @@ import time
 
 from asgiref.sync import sync_to_async
 
+from spiders.djinni import DjinniSpider
 from spiders.dou import DouSpider
 from spiders.rabota_ua import RabotaUaSpiser
 from spiders.work_ua import WorkUaSpider
 from spiders.telegram import TelegramSpider
 
 
-DELAY_BETWEEN_REQUEST_SESSIONS = 60
+DELAY_BETWEEN_REQUEST_SESSIONS = 10
 # SPIDERS = [WorkUaSpider, RabotaUaSpiser, DouSpider, TelegramSpider]
-SPIDERS = [DouSpider]
+SPIDERS = [TelegramSpider]
 
 
 async def async_spiders():
-    # await TelegramSpider().start()
-    await DouSpider().start()
+    await TelegramSpider().start()
+    # await DouSpider().start()
+    # await DjinniSpider().start()
 
 
 def sync_spiders():

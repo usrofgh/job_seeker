@@ -60,7 +60,13 @@ class Djinni(models.Model):
     vacancy_id = models.IntegerField(unique=True)
     title = models.CharField(max_length=300)
     company_name = models.CharField(max_length=300)
+    description = models.CharField(max_length=500)
+    url_to_vacancy = models.CharField(max_length=500, unique=True)
+    salary_from = models.IntegerField(null=True)
+    salary_to = models.IntegerField(null=True)
+    salary = models.IntegerField(null=True)
     publication_date = models.DateField()
+
 
 
 class LastVacancyId(models.Model):
@@ -71,7 +77,7 @@ class LastVacancyId(models.Model):
 class Telegram(models.Model):
     vacancy_id = models.IntegerField()
     spider_name = models.CharField(max_length=255)
-    publication_datetime = models.DateTimeField()
+    publication_date = models.DateTimeField()
     description = models.TextField()
 
     is_sent = models.BooleanField(default=False)
@@ -83,12 +89,12 @@ class Telegram(models.Model):
         return f"t.me/{self.spider_name}/{self.vacancy_id}"
 
     @property
-    def publication_time(self):
-        return f"{self.publication_datetime.time()}"
+    def publication_date_time(self):
+        return f"{self.publication_date.time()}"
 
     @property
-    def publication_date(self):
-        return f"{self.publication_datetime.date()}"
+    def publication_date_date(self):
+        return f"{self.publication_date.date()}"
 
     def __str__(self):
         return f"{self.spider_name} {self.vacancy_id}"

@@ -133,7 +133,7 @@ class RabotaUaSpiser(SpiderBlueprint):
             from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
             if from_vacancy:
                 vacancies: list[RabotaUa] = (await sync_to_async(RabotaUa.objects.filter)(
-                    id__gte=from_vacancy.id
+                    id__gte=from_vacancy.vacancy
                 )).order_by("publication_date")
                 n_vacancy = 0
                 async for vacancy in vacancies:

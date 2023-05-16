@@ -1,15 +1,9 @@
-import asyncio
 import time
 
-import requests as requests
 from asgiref.sync import sync_to_async
 from playwright.async_api import ElementHandle, async_playwright
 
 import init_django_module  # noqa F403
-
-
-from bs4 import BeautifulSoup
-
 
 from spiders.SpiderBlueprint import AsyncSpiderBlueprint
 from spiders.telegram import bot, CHAT_ID
@@ -131,7 +125,7 @@ class DouSpider(AsyncSpiderBlueprint):
             from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
             if from_vacancy:
                 vacancies: list[Dou] = (await sync_to_async(Dou.objects.filter)(
-                    id__gte=from_vacancy.id
+                    id__gte=from_vacancy.vacancy
                 )).order_by("publication_date")
                 n_vacancy = 0
                 async for vacancy in vacancies:

@@ -2,29 +2,17 @@ import asyncio
 import datetime
 import time
 
-import aiogram
-from aiogram.utils.exceptions import RetryAfter
 from asgiref.sync import sync_to_async
 from telethon.tl import functions
 
 import init_django_module  # noqa F403
 
 import os
-from dotenv import load_dotenv
-
-from aiogram import Bot, Dispatcher
-
 from telethon import TelegramClient
 from telethon.tl.types import InputPeerChannel, DialogFilter
 
+from bot_info import bot, CHAT_ID
 from vacancies.models import Telegram, TelegramLastVacancyId, FirstVacancySession
-
-load_dotenv(".env")
-
-API_TOKEN = os.environ["TG_BOT_TOKEN"]
-CHAT_ID = os.environ["CHAT_ID"]
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
 
 
 class TelegramSpider:
@@ -70,8 +58,9 @@ class TelegramSpider:
             )[1]
 
             channels: list[InputPeerChannel] = folder.include_peers
+            # [print(await self.client.get_entity(channel)) for channel in channels]
             is_first_vacancy_in_session = True
-            for channel in channels[:5]:
+            for channel in channels[-1::]:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
                 up_to = today - datetime.timedelta(days=20)
@@ -114,7 +103,7 @@ class TelegramSpider:
                     await sync_to_async(Telegram.objects.create)(
                         vacancy_id=msg.id,
                         spider_name=channel_username,
-                        publication_datetime=msg.date,
+                        publication_date=msg.date,
                         description=msg.message,
                     )
 
@@ -141,8 +130,8 @@ class TelegramSpider:
             from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
             if from_vacancy:
                 vacancies: list[Telegram] = (await sync_to_async(Telegram.objects.filter)(
-                    id__gte=from_vacancy.id
-                )).order_by("publication_datetime")
+                    id__gte=from_vacancy.vacancy
+                )).order_by("publication_date")
                 n_vacancy = 0
                 async for vacancy in vacancies:
                     n_vacancy += 1
@@ -151,7 +140,7 @@ class TelegramSpider:
                         time.sleep(5)
                     await bot.send_message(
                         CHAT_ID,
-                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date} {vacancy.publication_time}",
+                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date_date} {vacancy.publication_date_time}",
                         disable_web_page_preview=True
                     )
                     vacancy.is_sent = True
