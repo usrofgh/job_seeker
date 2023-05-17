@@ -2,10 +2,10 @@ import asyncio
 
 from playwright.async_api import async_playwright, Page
 
-from spiders.SpiderBlueprint import AsyncSpiderBlueprint
+from spiders.SpiderBlueprint import AsyncBaseSpider
 
 
-class LinkedinSpider(AsyncSpiderBlueprint):
+class LinkedinSpider(AsyncBaseSpider):
     SPIDER_NAME = "linkedin"
     URL = (
         "https://www.linkedin.com/jobs/search/"

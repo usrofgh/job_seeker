@@ -5,5 +5,13 @@ from vacancies import *
 from utils.month_in_english import *
 from vacancies.models import *
 
-response = requests.get("https://www.work.ua/jobs-python/")
+response = requests.get("https://djinni.co/jobs/?all-keywords=python&any-of-keywords=&exclude-keywords=senior&keywords=python+-senior&page=2")
 soup = BeautifulSoup(response.content, "html.parser")
+
+
+
+from playwright.sync_api import Playwright, sync_playwright, expect
+playwright = sync_playwright().start()
+browser = playwright.chromium.launch(headless=False)
+page = browser.new_page()
+page.goto("https://djinni.co/jobs/?all-keywords=python&any-of-keywords=&exclude-keywords=senior&keywords=python+-senior&page=2")

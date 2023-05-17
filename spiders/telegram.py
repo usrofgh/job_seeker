@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import time
 
 from asgiref.sync import sync_to_async
 from telethon.tl import functions
@@ -11,20 +10,30 @@ import os
 from telethon import TelegramClient
 from telethon.tl.types import InputPeerChannel, DialogFilter
 
-from bot_info import bot, CHAT_ID
-from vacancies.models import Telegram, TelegramLastVacancyId, FirstVacancySession
+from spiders.SpiderBlueprint import (
+    SendMessageToBotMixin,
+    asyncFixFirstVacancyInSessionMixin,
+)
+from vacancies.models import Telegram, TelegramLastVacancyId
 
 
-class TelegramSpider:
+class TelegramSpider(
+    SendMessageToBotMixin,
+    asyncFixFirstVacancyInSessionMixin
+):
     SPIDER_NAME = "telegram"
+    SPIDER_MODEL = Telegram
 
-    def __init__(self):
-        self.is_overridden_vacancy = False
-        self.last_vacancy_id = False
+    def __init__(self) -> None:
+        self.last_vacancy_id = None
+        self.last_vacancy_is_overriden = False
+        self.is_first_vacancy_in_session = True
 
         self.API_ID = int(os.environ["API_ID"])
         self.API_HASH = os.environ["API_HASH"]
-        self.client: TelegramClient = TelegramClient("name", self.API_ID, self.API_HASH)
+        self.client: TelegramClient = TelegramClient(
+            "name", self.API_ID, self.API_HASH
+        )
 
     @staticmethod
     def get_last_vacancy_id(channel_name: str | int) -> int | None:
@@ -59,7 +68,6 @@ class TelegramSpider:
 
             channels: list[InputPeerChannel] = folder.include_peers
             # [print(await self.client.get_entity(channel)) for channel in channels]
-            is_first_vacancy_in_session = True
             for channel in channels[-1::]:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
@@ -79,7 +87,7 @@ class TelegramSpider:
                 if self.last_vacancy_id:
                     channel_msg = self.client.iter_messages(channel, min_id=self.last_vacancy_id)
                 else:
-                    channel_msg = self.client.iter_messages(channel)  # next we specify up_to date
+                    channel_msg = self.client.iter_messages(channel)
 
                 async for msg in channel_msg:
                     print(f"t.me/c/{channel_username}/{msg.id}")
@@ -97,59 +105,18 @@ class TelegramSpider:
                         break
 
                     msg_text = msg.message
-                    if not msg_text or not ("Python" in msg_text or "python" in msg_text):
+                    if not msg_text or not ("python" in msg_text.lower()):
                         continue
-
-                    await sync_to_async(Telegram.objects.create)(
+                    await sync_to_async(self.SPIDER_MODEL.objects.create)(
                         vacancy_id=msg.id,
                         spider_name=channel_username,
                         publication_date=msg.date,
                         description=msg.message,
                     )
 
-                    if is_first_vacancy_in_session:
-                        is_first_vacancy_in_session = False
+                    await self.fix_first_vacancy_in_session()
 
-                        vacancy = await sync_to_async(Telegram.objects.last)()
-                        try:
-                            first_vacancy = (
-                                await sync_to_async(FirstVacancySession.objects.get)
-                                (spider_name=self.SPIDER_NAME)
-                            )
-                            first_vacancy.vacancy_id = vacancy.id
-                            sync_to_async(first_vacancy.save)()
-                        except FirstVacancySession.DoesNotExist:
-                            await sync_to_async(FirstVacancySession.objects.create)(
-                                spider_name=self.SPIDER_NAME,
-                                vacancy=vacancy.id
-                            )
         print("TG stop\n")
-
-    async def send_vacancies_to_bot(self):
-        try:
-            from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
-            if from_vacancy:
-                vacancies: list[Telegram] = (await sync_to_async(Telegram.objects.filter)(
-                    id__gte=from_vacancy.vacancy
-                )).order_by("publication_date")
-                n_vacancy = 0
-                async for vacancy in vacancies:
-                    n_vacancy += 1
-                    if n_vacancy == 29:
-                        n_vacancy = 0
-                        time.sleep(5)
-                    await bot.send_message(
-                        CHAT_ID,
-                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date_date} {vacancy.publication_date_time}",
-                        disable_web_page_preview=True
-                    )
-                    vacancy.is_sent = True
-                    await sync_to_async(vacancy.save)()
-
-                await sync_to_async(from_vacancy.delete)()
-            await bot.send_message(CHAT_ID, text="—————————————————————", disable_notification=True)
-        except FirstVacancySession.DoesNotExist as ex:
-            print(ex)
 
 
 if __name__ == '__main__':

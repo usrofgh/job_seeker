@@ -1,25 +1,20 @@
-import time
-
-from asgiref.sync import sync_to_async
-
 import init_django_module  # noqa F403
 
 import json
 
 import requests
 
-from spiders.SpiderBlueprint import SpiderBlueprint
-from spiders.telegram import bot, CHAT_ID
+from spiders.SpiderBlueprint import BaseSpider
 from utils.time_ago_to_date import get_date
-from vacancies.models import RabotaUa, FirstVacancySession
+from vacancies.models import RabotaUa
 
 
-class RabotaUaSpiser(SpiderBlueprint):
+class RabotaUaSpiser(BaseSpider):
     SPIDER_NAME = "rabota_ua"
+    SPIDER_MODEL = RabotaUa
     BASE_URL = "https://dracula.rabota.ua/?q=getPublishedVacanciesList"
-    is_first_vacancy_in_session = True
 
-    def get_api_page_list(self, n_page: int):
+    def get_vacancy_list(self, n_page: int):
         payload = json.dumps({
             "operationName": "getPublishedVacanciesList",
             "variables": {
@@ -60,7 +55,7 @@ class RabotaUaSpiser(SpiderBlueprint):
         page_n = 0
         while True:
             print(f"request to #{page_n + 1} page")
-            info = self.get_api_page_list(page_n)
+            info = self.get_vacancy_list(page_n)
             info = dict(info.json())
             vacancies = info["data"]["publishedVacancies"]["items"]
             if len(vacancies) == 0:
@@ -94,7 +89,7 @@ class RabotaUaSpiser(SpiderBlueprint):
                 company_name = vacancy["company"]["name"]
                 city = vacancy["city"]["name"]
 
-                RabotaUa.objects.create(
+                self.SPIDER_MODEL.objects.create(
                     title=title,
                     description=short_description,
                     company_name=company_name,
@@ -108,57 +103,8 @@ class RabotaUaSpiser(SpiderBlueprint):
                     publication_date=get_date(publication_ago)
                 )
 
-                if self.is_first_vacancy_in_session:
-                    self.is_first_vacancy_in_session = False
-
-                    vacancy = RabotaUa.objects.last()
-                    try:
-                        first_vacancy = (
-                            FirstVacancySession.objects.get(spider_name=self.SPIDER_NAME)
-                        )
-                        first_vacancy.vacancy = vacancy.id
-                        first_vacancy.save()
-                    except FirstVacancySession.DoesNotExist:
-                        FirstVacancySession.objects.create(
-                            spider_name=self.SPIDER_NAME,
-                            vacancy=vacancy.id
-                        )
+                self.fix_first_vacancy_in_session()
 
             if is_stop:
                 break
             page_n += 1
-
-    async def send_vacancies_to_bot(self):
-        try:
-            from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
-            if from_vacancy:
-                vacancies: list[RabotaUa] = (await sync_to_async(RabotaUa.objects.filter)(
-                    id__gte=from_vacancy.vacancy
-                )).order_by("publication_date")
-                n_vacancy = 0
-                async for vacancy in vacancies:
-                    n_vacancy += 1
-                    if n_vacancy == 29:
-                        n_vacancy = 0
-                        time.sleep(5)
-
-                    await bot.send_message(
-                        CHAT_ID,
-                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date}",
-                        disable_web_page_preview=True
-                    )
-                    vacancy.is_sent = True
-                    await sync_to_async(vacancy.save)()
-
-                await sync_to_async(from_vacancy.delete)()
-            await bot.send_message(CHAT_ID, text="—————————————————————", disable_notification=True)
-        except FirstVacancySession.DoesNotExist as ex:
-            print(ex)
-
-
-def main():
-    RabotaUaSpiser().start()
-
-
-if __name__ == '__main__':
-    main()

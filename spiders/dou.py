@@ -5,16 +5,15 @@ from playwright.async_api import ElementHandle, async_playwright
 
 import init_django_module  # noqa F403
 
-from spiders.SpiderBlueprint import AsyncSpiderBlueprint
-from spiders.telegram import bot, CHAT_ID
-from vacancies.models import FirstVacancySession, Dou
+from spiders.SpiderBlueprint import AsyncBaseSpider
+from vacancies.models import Dou
 
 
-class DouSpider(AsyncSpiderBlueprint):
+class DouSpider(AsyncBaseSpider):
     SPIDER_NAME = "dou"
+    SPIDER_MODEL = Dou
     URL = "https://jobs.dou.ua/vacancies/?search=python+-senior+-lead"
     DATE_FORMAT = "%d %B %Y"
-    is_first_vacancy_in_session = True
 
     @staticmethod
     async def btn_more_click(page) -> bool | None:
@@ -91,23 +90,11 @@ class DouSpider(AsyncSpiderBlueprint):
                     self.last_vacancy_is_overriden = True
 
                 if self.is_suitable_vacancy(vacancy["title"]):
-                    await sync_to_async(Dou.objects.create)(**vacancy)
+                    await sync_to_async(self.SPIDER_MODEL.objects.create)(**vacancy)
 
-                    if self.is_first_vacancy_in_session:
-                        self.is_first_vacancy_in_session = False
+                    await self.fix_first_vacancy_in_session()
 
-                        vacancy = await sync_to_async(Dou.objects.last)()
-                        try:
-                            first_vacancy = (
-                                await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
-                            )
-                            first_vacancy.vacancy = vacancy.id
-                            await sync_to_async(first_vacancy.save)()
-                        except FirstVacancySession.DoesNotExist:
-                            await sync_to_async(FirstVacancySession.objects.create)(
-                                spider_name=self.SPIDER_NAME,
-                                vacancy=vacancy.id
-                            )
+            print("Dou stop\n")
 
             if is_stop:
                 break
@@ -120,34 +107,6 @@ class DouSpider(AsyncSpiderBlueprint):
             else:
                 break
 
-    async def send_vacancies_to_bot(self):
-        try:
-            from_vacancy = await sync_to_async(FirstVacancySession.objects.get)(spider_name=self.SPIDER_NAME)
-            if from_vacancy:
-                vacancies: list[Dou] = (await sync_to_async(Dou.objects.filter)(
-                    id__gte=from_vacancy.vacancy
-                )).order_by("publication_date")
-                n_vacancy = 0
-                async for vacancy in vacancies:
-                    n_vacancy += 1
-                    if n_vacancy == 29:
-                        n_vacancy = 0
-                        time.sleep(5)
-
-                    await bot.send_message(
-                        CHAT_ID,
-                        text=f"{vacancy.url_to_vacancy} {vacancy.publication_date}",
-                        disable_web_page_preview=True
-                    )
-
-                    vacancy.is_sent = True
-                    await sync_to_async(vacancy.save)()
-
-                await sync_to_async(from_vacancy.delete)()
-            await bot.send_message(CHAT_ID, text="—————————————————————", disable_notification=True)
-        except FirstVacancySession.DoesNotExist as ex:
-            print(ex)
-
     async def start(self):
         print("Dou start")
         async with async_playwright() as playwright:
@@ -158,11 +117,3 @@ class DouSpider(AsyncSpiderBlueprint):
 
             await context.close()
             await browser.close()
-
-
-def main():
-    DouSpider().start()
-
-
-if __name__ == '__main__':
-    main()
