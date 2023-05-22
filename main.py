@@ -11,8 +11,7 @@ from spiders.telegram import TelegramSpider
 
 
 DELAY_BETWEEN_REQUEST_SESSIONS = 60
-SPIDERS = [WorkUaSpider, RabotaUaSpiser, DouSpider, TelegramSpider, DjinniSpider]
-# SPIDERS = [DjinniSpider]
+SPIDERS = [WorkUaSpider, RabotaUaSpiser, DjinniSpider, DouSpider, TelegramSpider]
 
 
 async def async_spiders():
@@ -23,7 +22,7 @@ async def async_spiders():
 def sync_spiders():
     WorkUaSpider().start()
     RabotaUaSpiser().start()
-    DjinniSpider().start()
+    # DjinniSpider().start()
 
 
 async def send_vacancies_to_bot(spiders: list):
@@ -33,8 +32,8 @@ async def send_vacancies_to_bot(spiders: list):
 
 async def main():
     while True:
-        await async_spiders()
         await sync_to_async(sync_spiders)()
+        await async_spiders()
         await send_vacancies_to_bot(SPIDERS)
 
         time.sleep(DELAY_BETWEEN_REQUEST_SESSIONS)

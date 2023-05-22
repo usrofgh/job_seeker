@@ -1,7 +1,4 @@
-from datetime import datetime
-
-
-UA_MONTHS_TO_EU = {
+UA_MONTHS_TO_ENG = {
     'січня': 'January',
     'лютого': 'February',
     'березня': 'March',
