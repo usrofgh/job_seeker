@@ -5,9 +5,11 @@ from asgiref.sync import sync_to_async
 
 from bot_info import bot, CHAT_ID
 from utils.filter import EXCLUDE_WORDS, INCLUDE_WORDS
-from utils.month_in_english import UA_MONTHS_TO_EU
+from utils.month_in_english import UA_MONTHS_TO_ENG
 from utils.time_ago_to_human import vacancy_post_human_time_ago
 from vacancies.models import LastVacancyId, FirstVacancySession
+
+MESSAGE_COUNTER = 0
 
 
 class SendMessageToBotMixin:
@@ -25,18 +27,17 @@ class SendMessageToBotMixin:
                     (id__gte=from_vacancy.vacancy)
                 ).order_by("publication_date")
 
-                sent_vacancies = 0
+                global MESSAGE_COUNTER
                 async for vacancy in vacancies:
-                    sent_vacancies += 1
-                    if sent_vacancies == 25:
-                        sent_vacancies = 0
+                    MESSAGE_COUNTER += 1
+                    if MESSAGE_COUNTER == 25:
+                        MESSAGE_COUNTER = 0
                         time.sleep(10)
-
 
                     await bot.send_message(
                         CHAT_ID,
                         text=f"[{cls.SPIDER_NAME}]({vacancy.url_to_vacancy}) "
-                             f"{vacancy_post_human_time_ago(vacancy)} {vacancy.publication_date.date()}",
+                             f"{vacancy_post_human_time_ago(vacancy)}",
                         disable_web_page_preview=True,
                         parse_mode="Markdown"
                     )
@@ -142,7 +143,7 @@ class BaseSpider(SendMessageToBotMixin, FixFirstVacancyInSessionMixin):
 
     def str_to_date(self, vacancy_date_str: str) -> datetime.date:
         month = vacancy_date_str.split(" ")[1]
-        date_str = vacancy_date_str.replace(month, UA_MONTHS_TO_EU[month])
+        date_str = vacancy_date_str.replace(month, UA_MONTHS_TO_ENG[month])
         date = datetime.strptime(date_str, self.DATE_FORMAT).date()
         return date
 
@@ -195,6 +196,6 @@ class AsyncBaseSpider(SendMessageToBotMixin, asyncFixFirstVacancyInSessionMixin)
 
     async def str_to_date(self, vacancy_date_str: str) -> datetime.date:
         month = vacancy_date_str.split(" ")[1]
-        date_str = vacancy_date_str.replace(month, UA_MONTHS_TO_EU[month])
+        date_str = vacancy_date_str.replace(month, UA_MONTHS_TO_ENG[month])
         date = datetime.strptime(date_str, self.DATE_FORMAT).date()
         return date

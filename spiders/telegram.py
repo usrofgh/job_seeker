@@ -67,11 +67,10 @@ class TelegramSpider(
             )[1]
 
             channels: list[InputPeerChannel] = folder.include_peers
-            # [print(await self.client.get_entity(channel)) for channel in channels]
-            for channel in channels[-1::]:
+            for channel in channels:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
-                up_to = today - datetime.timedelta(days=20)
+                up_to = today - datetime.timedelta(days=5)
 
                 try:
                     if channel.username:

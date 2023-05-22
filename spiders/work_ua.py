@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlencode
 
 from spiders.SpiderBlueprint import BaseSpider
+from utils.user_agents import USER_AGENTS_ITER
 from vacancies.models import WorkUa
 
 
@@ -110,7 +111,7 @@ class WorkUaSpider(BaseSpider):
 
     def start(self):
         print("WorkUa start")
-        response = requests.get(self.BASE_URL)
+        response = requests.get(self.BASE_URL, headers=next(USER_AGENTS_ITER))
         print(f"request to #1 page")
         soup = BeautifulSoup(response.content, "html.parser")
 
