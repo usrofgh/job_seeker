@@ -33,11 +33,19 @@ class SendMessageToBotMixin:
                     if MESSAGE_COUNTER == 25:
                         MESSAGE_COUNTER = 0
                         time.sleep(10)
-
+                    if cls.SPIDER_NAME == "telegram":
+                        message_text = (
+                            f"[{cls.SPIDER_NAME}]({vacancy.url_to_vacancy}) "
+                            f"{vacancy_post_human_time_ago(vacancy)}"
+                        )
+                    else:
+                        message_text = (
+                            f"[{vacancy.title}]({vacancy.url_to_vacancy}) "
+                            f"{vacancy_post_human_time_ago(vacancy)}"
+                        )
                     await bot.send_message(
                         CHAT_ID,
-                        text=f"[{cls.SPIDER_NAME}]({vacancy.url_to_vacancy}) "
-                             f"{vacancy_post_human_time_ago(vacancy)}",
+                        text=message_text,
                         disable_web_page_preview=True,
                         parse_mode="Markdown"
                     )

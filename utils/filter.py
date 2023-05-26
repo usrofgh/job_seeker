@@ -5,5 +5,6 @@ EXCLUDE_WORDS = [
 ]
 INCLUDE_WORDS = [
     "python", "пайтон", "пітон", "питон", "data", "дата" "analyst",
-    "аналитик", "аналітик", "просто буду платити гроші", "scrapy"
+    "аналитик", "аналітик", "просто буду платити гроші", "scrapy",
+    "fastapi", "django", "drf", "django rest framework"
 ]

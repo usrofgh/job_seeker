@@ -70,10 +70,15 @@ class DouSpider(AsyncBaseSpider):
         is_stop = False
         n_vac = 0
         self.last_vacancy_id = await sync_to_async(self.get_last_vacancy_id)()
+
         while True:
             await page.wait_for_selector(".vacancy")
             vacancies = await page.query_selector_all(".vacancy")
-            vacancies = vacancies[n_vac::]
+            if await page.query_selector(".l-vacancy.__hot") and n_vac == 0:
+                vacancies = vacancies[1::]  # first is hot. can be duplicate. Skip it.
+                n_vac += 1
+            else:
+                vacancies = vacancies[n_vac::]
             for vacancy in vacancies:
                 n_vac += 1
 
@@ -94,8 +99,6 @@ class DouSpider(AsyncBaseSpider):
 
                     await self.fix_first_vacancy_in_session()
 
-            print("Dou stop\n")
-
             if is_stop:
                 break
 
@@ -114,6 +117,5 @@ class DouSpider(AsyncBaseSpider):
             context = await browser.new_context()
             page = await context.new_page()
             await self.parse_vacancies(page)
-
             await context.close()
             await browser.close()

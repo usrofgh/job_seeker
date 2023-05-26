@@ -86,7 +86,7 @@ class DjinniSpider(BaseSpider):
             "url_to_vacancy": url_to_vacancy
         }
 
-    def get_vacancy_list(self, soup) -> None:
+    def get_vacancy_list(self, soup) -> bool:
         is_stop = False
         self.last_vacancy_id = self.get_last_vacancy_id()
         vacancies = soup.select(".list__item")
@@ -111,7 +111,7 @@ class DjinniSpider(BaseSpider):
             self.fix_first_vacancy_in_session()
 
         if is_stop:
-            return
+            return False
 
     def start(self):
         print("Djinni start")
@@ -126,4 +126,6 @@ class DjinniSpider(BaseSpider):
             print(f"request to #{n_page} page")
             response = requests.get(next_page, headers=next(USER_AGENTS_ITER))
             soup = BeautifulSoup(response.content, "html.parser")
-            self.get_vacancy_list(soup)
+            is_continue = self.get_vacancy_list(soup)
+            if is_continue is False:
+                break

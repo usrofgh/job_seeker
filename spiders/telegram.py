@@ -70,7 +70,7 @@ class TelegramSpider(
             for channel in channels:
                 channel = await self.client.get_entity(channel)
                 today = datetime.datetime.today()
-                up_to = today - datetime.timedelta(days=5)
+                up_to = today - datetime.timedelta(days=5)  # TODO: in deployment do 20 days
 
                 try:
                     if channel.username:
